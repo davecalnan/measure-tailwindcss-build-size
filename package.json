@@ -1,0 +1,18 @@
+{
+  "name": "measure-tailwindcss-build-size",
+  "version": "0.1.0",
+  "description": "A handy way to measure the original, minified, and gzipped sizes of tailwindcss builds.",
+  "main": "index.js",
+  "scripts": {
+    "measure": "node measure.js"
+  },
+  "author": "Dave Calnan <d@ve.ie>",
+  "license": "ISC",
+  "dependencies": {
+    "clean-css": "^4.2.1",
+    "cli-table": "^0.3.1",
+    "node-gzip": "^1.1.2",
+    "rimraf": "^2.6.3",
+    "tailwindcss": "^1.0.0-beta.4"
+  }
+}
