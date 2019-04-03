@@ -1,9 +1,9 @@
 module.exports = {
   theme: {
-    extend: {
-      colors: {
-        cyan: 'cyan'
-      }
+    screens: {
+      sm: '640px',
+      md: '768px',
+      lg: '1024px',
     }
   },
   variants: {},

@@ -1,7 +1,7 @@
 module.exports = {
   theme: {
-    colors: {
-      cyan: 'cyan'
+    screens: {
+      sm: '640px',
     }
   },
   variants: {},
