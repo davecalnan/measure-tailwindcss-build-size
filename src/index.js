@@ -57,7 +57,7 @@ module.exports = async (configDirectory, cssPath) => {
   clearOutput()
   const configs = await readdir(configDirectory)
 
-  console.info('Building...')
+  console.info('Calculating...')
   const data = await Promise.all(configs.map(async config => {
     const [filename, extension] = split(config)
     const outputDirectory = `./output/`
