@@ -36,7 +36,7 @@ const compress = async path => {
   await writeFile(`${path}.gzip`, compressed)
 }
 
-const measure = async (outputDirectory, filename) => {
+const getFileSizes = async (outputDirectory, filename) => {
   const { size: original } = await stat(`${outputDirectory + filename}.css`)
   const { size: minified } = await stat(`${outputDirectory + filename}.min.css`)
   const { size: gzipped } = await stat(`${outputDirectory + filename}.min.css.gzip`)
@@ -47,8 +47,25 @@ const measure = async (outputDirectory, filename) => {
   }
 }
 
+const getCssStats = async path => {
+  const css = await readFile(path)
+  const classes = css.toString().match(/(\.[^{} ]*){/g).length
+  const declarations = css.toString().match(/([^{} ]*){/g).length
+  return {
+    classes,
+    declarations
+  }
+}
+
+const measure = async (outputDirectory, filename) => {
+  return {
+    ...await getFileSizes(outputDirectory, filename),
+    ...await getCssStats(`${outputDirectory + filename}.min.css`)
+  }
+}
+
 const display = data => {
-  const table = new Table({ head: ['Config', 'Original', 'Minified', 'Gzipped'] })
+  const table = new Table({ head: ['Config', 'Original', 'Minified', 'Gzipped', 'Classes', 'Declarations'] })
   table.push(...data)
   console.info(table.toString())
 }
@@ -67,9 +84,9 @@ module.exports = async (configDirectory, cssPath) => {
       await build(configDirectory + config, outputDirectory + outputFile, cssPath)
       await minify(outputDirectory, outputFile)
       await compress(`${outputDirectory + filename}.min.css`)
-      const { original, minified, gzipped } = await measure(outputDirectory, filename)
+      const { original, minified, gzipped, classes, declarations } = await measure(outputDirectory, filename)
 
-      return { [config]: [original, minified, gzipped] }
+      return { [config]: [original, minified, gzipped, classes, declarations] }
 
     } catch (error) {
       console.error(error)
