@@ -1,6 +1,7 @@
 const util = require('util')
 const exec = util.promisify(require('child_process').exec)
 const fs = require('fs')
+const zlib = require('zlib')
 const readFile = util.promisify(fs.readFile)
 const readdir = util.promisify(fs.readdir)
 const stat = util.promisify(fs.stat)
@@ -10,6 +11,15 @@ const rimraf = require('rimraf')
 const { gzip } = require('node-gzip')
 const CleanCSS = require('clean-css')
 const Table = require('cli-table')
+
+const brotli = (input, options) => {
+  return new Promise(function(resolve, reject) {
+    zlib.brotliCompress(input, options, function (error, result) {
+      if(!error) resolve(result)
+      else reject(Error(error))
+    })
+  })
+}
 
 const clearOutput = () => rimraf('./output/*', error => error && console.error(error))
 
@@ -32,18 +42,24 @@ const minify = async (directory, file) => {
 
 const compress = async path => {
   const file = await readFile(path)
-  const compressed = await gzip(file.toString())
-  await writeFile(`${path}.gzip`, compressed)
+  const gzipCompressed = gzip(file.toString(), { level: 9 })
+  const brotliCompressed = brotli(file.toString(), { params: { [zlib.constants.BROTLI_PARAM_QUALITY]: 11 }})
+  await Promise.all([
+    writeFile(`${path}.gzip`, await gzipCompressed),
+    writeFile(`${path}.brotli`, await brotliCompressed),
+  ])
 }
 
 const getFileSizes = async (outputDirectory, filename) => {
   const { size: original } = await stat(`${outputDirectory + filename}.css`)
   const { size: minified } = await stat(`${outputDirectory + filename}.min.css`)
   const { size: gzipped } = await stat(`${outputDirectory + filename}.min.css.gzip`)
+  const { size: brotlified } = await stat(`${outputDirectory + filename}.min.css.brotli`)
   return {
     original: convertToKB(original),
     minified: convertToKB(minified),
-    gzipped: convertToKB(gzipped)
+    gzipped: convertToKB(gzipped),
+    brotlified: convertToKB(brotlified),
   }
 }
 
@@ -65,7 +81,7 @@ const measure = async (outputDirectory, filename) => {
 }
 
 const display = data => {
-  const table = new Table({ head: ['Config', 'Original', 'Minified', 'Gzipped', 'Classes', 'Declarations'] })
+  const table = new Table({ head: ['Config', 'Original', 'Minified', 'Gzip', 'Brotli', 'Classes', 'Declarations'] })
   table.push(...data)
   console.info(table.toString())
 }
@@ -84,9 +100,9 @@ module.exports = async (configDirectory, cssPath) => {
       await build(configDirectory + config, outputDirectory + outputFile, cssPath)
       await minify(outputDirectory, outputFile)
       await compress(`${outputDirectory + filename}.min.css`)
-      const { original, minified, gzipped, classes, declarations } = await measure(outputDirectory, filename)
+      const { original, minified, gzipped, brotlified, classes, declarations } = await measure(outputDirectory, filename)
 
-      return { [config]: [original, minified, gzipped, classes, declarations] }
+      return { [config]: [original, minified, gzipped, brotlified, classes, declarations] }
 
     } catch (error) {
       console.error(error)
